@@ -13,8 +13,7 @@ bool FindOne(unsigned int num) {
         }
         num >>= 1;
     }
-    if (found && ok) return true;
-    return false;
+    return found && ok;
 }
 
  int main() {
