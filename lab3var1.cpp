@@ -22,11 +22,15 @@ public:
     }
 
     int pop_front() {
-        if (size_ == 0) return -1;
+        assert(size_ != 0);
         int result = buffer_[head_];
         head_ = (head_ + 1) % capacity_;
         --size_;
         return result;
+    }
+
+    bool empty() {
+        return size_ == 0;
     }
 
 private:
@@ -63,7 +67,11 @@ int main() {
         if (command == 3) {
             queue.push_back(value);
         } else if (command ==2) {
-            if (queue.pop_front() != value) result = false;
+            if (queue.empty()) {
+                if (-1 != value) result = false;
+            } else {
+                if (queue.pop_front() != value) result = false;
+            }
         } else {
             assert(false);
         }
