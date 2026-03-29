@@ -87,5 +87,6 @@ int main() {
         }
     }
     std::cout << result << std::endl;
+    delete[] points;
     return 0;
 }
