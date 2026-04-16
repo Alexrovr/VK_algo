@@ -61,6 +61,9 @@ public:
         delete[] table;
     }
 
+    HashTable(const HashTable&) = delete;
+    HashTable& operator=(const HashTable&) = delete;
+
     bool contains(const std::string& key) const {
         size_t index = hash(key);
         for (size_t i = 0; i < capacity; ++i) {
