@@ -27,17 +27,31 @@ private:
     }
 
     void resize() {
-        size_t new_capacity = capacity * 2;
-        Node *new_table = new Node[new_capacity];
-        for (size_t i = 0; i < capacity; ++i) {
-            if (table[i].state == Full) {
-                new_table[i] = table[i];
+        size_t old_capacity = capacity;
+        Node *old_table = table;
+
+        capacity *= 2;
+        table = new Node[capacity];
+        size_t old_size = size;
+        size = 0;
+
+        for (size_t i = 0; i < old_capacity; ++i) {
+            if (old_table[i].state == Full) {
+                size_t index = hash(old_table[i].value);
+                for (size_t j = 0; j < capacity; ++j) {
+                    if (table[index].state != Full) {
+                        table[index].value = old_table[i].value;
+                        table[index].state = Full;
+                        size++;
+                        break;
+                    }
+                    index = (index + j + 1) % capacity;
+                }
             }
         }
-        delete[] table;
-        table = new_table;
-        capacity = new_capacity;
+        delete[] old_table;
     }
+
 public:
     HashTable(size_t cap = 8) : capacity(cap), size(0) {
         table = new Node[capacity];
@@ -49,28 +63,34 @@ public:
 
     bool contains(const std::string& key) const {
         size_t index = hash(key);
-        while (table[index].state != Empty) {
+        for (size_t i = 0; i < capacity; ++i) {
+            if (table[index].state == Empty) {
+                return false;
+            }
             if (table[index].state == Full && table[index].value == key) {
                 return true;
             }
-            index = (index + 1) % capacity;
+            index = (index + i + 1) % capacity;
         }
         return false;
     }
 
     void remove(const std::string& key) {
         size_t index = hash(key);
-        while (table[index].state != Empty) {
+        for (size_t i = 0; i < capacity; ++i) {
+            if (table[index].state == Empty) {
+                return;
+            }
             if (table[index].state == Full && table[index].value == key) {
                 table[index].state = Deleted;
                 --size;
                 return;
             }
-            index = (index + 1) % capacity;
+            index = (index + i + 1) % capacity;
         }
     }
 
-    bool add(const std::string& key) {  
+    bool add(const std::string& key) {
         if (contains(key)) {
             return false;
         }
@@ -79,15 +99,37 @@ public:
             resize();
         }
         size_t index = hash(key);
-        while (table[index].state == Full) {
-            if (table[index].value == key) {
-                return false;
+        for (size_t i = 0; i < capacity; ++i) {
+            if (table[index].state != Full) {
+                table[index].value = key;
+                table[index].state = Full;
+                ++size;
+                return true;
             }
-            index = (index + 1) % capacity;
+            index = (index + i + 1) % capacity;
         }
-        table[index].value = key;
-        table[index].state = Full;
-        ++size;
-        return true;
+        return false;
     }
 };
+
+int main() {
+    HashTable hashtable;
+    char command;
+    std::string s;
+    while (std::cin >> command >> s) {
+        if (command == '+') {
+            std::cout << (hashtable.add(s) ? "OK" : "FAIL") << std::endl;
+        } else if (command == '-') {
+            if (!hashtable.contains(s)) {
+                std::cout << "FAIL" << std::endl;
+                continue;
+            }
+            hashtable.remove(s);
+            std::cout << "OK" << std::endl;
+        } else if (command == '?') {
+            std::cout << (hashtable.contains(s) ? "OK" : "FAIL") << std::endl;
+        }
+    }
+
+    return 0;
+}
