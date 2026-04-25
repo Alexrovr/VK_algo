@@ -1,84 +1,159 @@
 #include <iostream>
-using namespace std;
+#include <stack>
 
-struct Node {
-    int key;
-    int left;
-    int right;
+
+template<typename T, typename C>
+class BinaryTree {
+public:
+    BinaryTree(const C& _cmp) : cmp(_cmp), root(nullptr) {}
+    ~BinaryTree();
+
+    bool Has(const T& key) const;
+    void Add(const T& key);
+
+    void Dfs(void (*visit)(const T& key)) const;
+
+private:
+    struct Node {
+        T key;
+        Node* left;
+        Node* right;
+
+        Node(const T& value) : key(value), left(nullptr), right(nullptr) {}
+    };
+    C cmp;
+    Node* root;
+
+    void deleteNode(Node* node);
+    bool has(Node* node, const T& key) const;
+    void add(Node*& node, const T& key);
+    void dfs(Node* node, void (*visit)(const T& key)) const;
+};
+
+template<typename T, typename C>
+BinaryTree<T, C>::~BinaryTree() {
+    deleteNode(root);
+}
+
+template<typename T, typename C>
+void BinaryTree<T, C>::deleteNode(Node* node) {
+    if (!node) return;
+    std::stack<Node*> nodeStack;
+    Node* current = node;
+    Node* lastVisited = nullptr;
+    while (!nodeStack.empty() || current) {
+        if (current) {
+            nodeStack.push(current);
+            current = current->left;
+        } else {
+            Node* topNode = nodeStack.top();
+            if (topNode->right != nullptr && topNode->right != lastVisited) {
+                current = topNode->right;
+            } else {
+                delete topNode;
+                lastVisited = topNode;
+                nodeStack.pop();
+            }
+        }
+    }
+}
+
+template<typename T, typename C>
+bool BinaryTree<T, C>::Has(const T& key) const {
+    return has(root, key);
+}
+
+template<typename T, typename C>
+bool BinaryTree<T, C>::has(Node* node, const T& key) const {
+    Node* current = node;
+    while(current) {
+        if (current->key == key) {
+            return true;
+        }
+        if (cmp(key, current->key)) {
+            current = current->left;
+        } else {
+            current = current->right;
+        }
+    }
+    return false;
+}
+
+template<typename T, typename C>
+void BinaryTree<T, C>::Add(const T& key) {
+    add(root, key);
+}
+
+template<typename T, typename C>
+void BinaryTree<T, C>::add(Node*& node, const T& key) {
+    if (!node) {
+        node = new Node(key);
+        return;
+    }
+    Node* current = node;
+    Node* parent = nullptr;
+    while (current) {
+        parent = current;
+        if (cmp(key, current->key)) {
+            current = current->left;
+        } else {
+            current = current->right;
+        }
+    }
+    if (cmp(key, parent->key)) {
+        parent->left = new Node(key);
+    } else {
+        parent->right = new Node(key);
+    }
+}
+
+template<typename T, typename C>
+void BinaryTree<T, C>::Dfs(void (*visit)(const T& key)) const {
+    dfs(root, visit);
+}
+
+template<typename T, typename C>
+void BinaryTree<T, C>::dfs(Node* node, void (*visit)(const T& key)) const {
+    if (node == nullptr) {
+        return;
+    }
+    std::stack<Node*> nodeStack;
+    Node* lastVisited = nullptr;
+    Node* current = node;
+    while(!nodeStack.empty() || current) {
+        if (current) {
+            nodeStack.push(current);
+            current = current->left;
+        } else {
+            Node* topNode = nodeStack.top();
+            if (topNode->right != nullptr && topNode->right != lastVisited) {
+                current = topNode->right;
+            } else {
+                visit(topNode->key);
+                lastVisited = topNode;
+                nodeStack.pop();
+            }
+        }
+    }
+}
+
+struct Comparator {
+    bool operator()(const int& a, const int& b) const {
+        return a < b;
+    }
 };
 
 int main() {
     int n;
-    cin >> n;
-
-    if (n == 0) return 0;
-
-    Node* tree = new Node[n];
-    int root = 0;
-
-    cin >> tree[0].key;
-    tree[0].left = -1;
-    tree[0].right = -1;
-
-    for (int i = 1; i < n; i++) {
-        int key;
-        cin >> key;
-
-        int current = root;
-        while (true) {
-            if (tree[current].key <= key) {
-                if (tree[current].right == -1) {
-                    tree[current].right = i;
-                    tree[i].key = key;
-                    tree[i].left = -1;
-                    tree[i].right = -1;
-                    break;
-                } else {
-                    current = tree[current].right;
-                }
-            } else {
-                if (tree[current].left == -1) {
-                    tree[current].left = i;
-                    tree[i].key = key;
-                    tree[i].left = -1;
-                    tree[i].right = -1;
-                    break;
-                } else {
-                    current = tree[current].left;
-                }
-            }
-        }
+    std::cin >> n;
+    Comparator cmp;
+    BinaryTree<int, Comparator> tree(cmp);
+    for (int i = 0; i < n; i++) {
+        int elem;
+        std::cin >> elem;
+        tree.Add(elem);
     }
 
-    int* stack1 = new int[n];
-    int* stack2 = new int[n];
-    int top1 = 0, top2 = 0;
-
-    stack1[top1++] = root;
-
-    while (top1 > 0) {
-        int node = stack1[--top1];
-        stack2[top2++] = node;
-
-        if (tree[node].left != -1) {
-            stack1[top1++] = tree[node].left;
-        }
-        if (tree[node].right != -1) {
-            stack1[top1++] = tree[node].right;
-        }
-    }
-
-    bool first = true;
-    for (int i = top2 - 1; i >= 0; i--) {
-        if (!first) cout << " ";
-        cout << tree[stack2[i]].key;
-        first = false;
-    }
-    cout << "\n";
-
-    delete[] tree;
-    delete[] stack1;
-    delete[] stack2;
-
+    tree.Dfs([](const int& key) { std::cout << key << " "; });
     return 0;
 }
