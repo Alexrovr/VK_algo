@@ -94,23 +94,38 @@ public:
     }
 
     bool add(const std::string& key) {
-        if (contains(key)) {
-            return false;
-        }
-
         if (size >= capacity * 0.75) {
             resize();
         }
-        size_t index = hash(key);
+        size_t h = hash(key);
+        int first_deleted_index = -1;
         for (size_t i = 0; i < capacity; ++i) {
-            if (table[index].state != Full) {
-                table[index].value = key;
-                table[index].state = Full;
+            size_t index = (h + i * (i + 1) / 2) % capacity;
+            if (table[index].state == Full) {
+                if (table[index].value == key) {
+                    return false;
+                }
+            }
+            else if (table[index].state == Deleted) {
+                if (first_deleted_index == -1) {
+                    first_deleted_index = static_cast<int>(index);
+                }
+            }
+            else if (table[index].state == Empty) {
+                size_t insert_index = (first_deleted_index != -1) ? first_deleted_index : index;
+                table[insert_index].value = key;
+                table[insert_index].state = Full;
                 ++size;
                 return true;
             }
-            index = (index + i + 1) % capacity;
         }
+        if (first_deleted_index != -1) {
+            table[first_deleted_index].value = key;
+            table[first_deleted_index].state = Full;
+            ++size;
+            return true;
+        }
+
         return false;
     }
 };

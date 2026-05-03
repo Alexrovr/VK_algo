@@ -82,29 +82,35 @@ private:
         return balance(n);
     }
 
-    Node* findMin(Node* n) {
-        if (n->left) return findMin(n->left);
-        return n;
-    }
+    Node* findAndRemoveMin(Node* n, Node*& minNode) {
+        if (!n->left) {
+            minNode = n;
+            return n->right;
+        }
 
-    Node* removeMin(Node* n) {
-        if (!n->left) return n->right;
-        n->left = removeMin(n->left);
+        n->left = findAndRemoveMin(n->left, minNode);
         return balance(n);
     }
 
     Node* remove(Node* n, const T& key) {
         if (!n) return nullptr;
-        if (cmp(key, n->key)) n->left = remove(n->left, key);
-        else if (cmp(n->key, key)) n->right = remove(n->right, key);
-        else {
+
+        if (cmp(key, n->key)) {
+            n->left = remove(n->left, key);
+        } else if (cmp(n->key, key)) {
+            n->right = remove(n->right, key);
+        } else {
             Node* l = n->left;
             Node* r = n->right;
             delete n;
+
             if (!r) return l;
-            Node* minNode = findMin(r);
-            minNode->right = removeMin(r);
+            Node* minNode = nullptr;
+            Node* newRight = findAndRemoveMin(r, minNode);
+            minNode->right = newRight;
             minNode->left = l;
+            updateHeight(minNode);
+            updateCount(minNode);
             return balance(minNode);
         }
         return balance(n);
